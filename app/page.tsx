@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Clock, Percent, BarChart3, Users, Calendar, History, Save } from "lucide-react"
+import { Clock, BarChart3, Users, Calendar, History, Save, Upload, Download, X, Trash2 } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -11,7 +11,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   LineChart,
   Line,
   LabelList,
@@ -49,6 +48,8 @@ export default function HoursPercentageCalculator() {
   const [history, setHistory] = useState<DailyRecord[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split("T")[0])
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   useEffect(() => {
     loadHistory()
@@ -89,6 +90,15 @@ export default function HoursPercentageCalculator() {
       alert(`Dia ${formatDate(currentDate)} salvo com sucesso! ✓`)
     } catch (error) {
       alert("Erro ao salvar: " + (error instanceof Error ? error.message : "Desconhecido"))
+    }
+  }
+
+  const deleteDay = (date: string) => {
+    if (window.confirm(`Tem certeza que deseja deletar o dia ${formatDate(date)}?`)) {
+      const newHistory = history.filter((h) => h.date !== date)
+      setHistory(newHistory)
+      localStorage.setItem("work-hours-history", JSON.stringify(newHistory))
+      alert("Dia deletado com sucesso!")
     }
   }
 
@@ -147,9 +157,11 @@ export default function HoursPercentageCalculator() {
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border-2 border-indigo-200">
+        <div className="bg-white p-3 rounded-lg shadow-lg border-2" style={{ borderColor: "#003a75" }}>
           <p className="font-semibold text-gray-800">{payload[0].payload.name}</p>
-          <p className="text-indigo-600 font-bold">{payload[0].payload.displayPercentage}%</p>
+          <p style={{ color: "#003a75" }} className="font-bold">
+            {payload[0].payload.displayPercentage}%
+          </p>
           <p className="text-sm text-gray-500">Meta: {payload[0].payload.goal}</p>
           <p className="text-sm text-gray-600 font-semibold mt-1">Horas: {payload[0].payload.hoursWorked}</p>
         </div>
@@ -241,24 +253,180 @@ export default function HoursPercentageCalculator() {
     }
 
     let csv =
-      "Data,Média (%),Tempo Médio,Meta Atingida,Funcionário,Horas Trabalhadas,Meta Diária,Porcentagem Individual\n"
+      "Data\tMédia (%)\tTempo Médio\tMeta Atingida\tFuncionário\tHoras Trabalhadas\tMeta Diária\tPorcentagem Individual (%)\n"
 
     history.forEach((day) => {
       const metaAtingida = day.averagePercentage >= 90 ? "Sim" : "Não"
       day.employees.forEach((emp) => {
-        csv += `${formatDate(day.date)},${day.averagePercentage.toFixed(1)},${day.averageTime},${metaAtingida},${emp.name},${emp.hours},${emp.dailyGoal},${emp.percentage.toFixed(1)}\n`
+        csv += `${formatDate(day.date)}\t${day.averagePercentage.toFixed(1)}\t${day.averageTime}\t${metaAtingida}\t${emp.name}\t${emp.hours}\t${emp.dailyGoal}\t${emp.percentage.toFixed(1)}\n`
       })
     })
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const blob = new Blob([csv], { type: "text/tab-separated-values;charset=utf-8;" })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", `relatorio_horas_${new Date().toISOString().split("T")[0]}.csv`)
+    link.setAttribute("download", `relatorio_horas_${new Date().toISOString().split("T")[0]}.xlsx`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const downloadImportTemplate = () => {
+    let csv = "Data\tFuncionário\tHoras Trabalhadas\tMeta Diária\n"
+    csv += "04/11/2025\tRaposo\t08:30\t8:30\n"
+    csv += "04/11/2025\tMika\t08:35\t8:30\n"
+    csv += "04/11/2025\tLuiz\t08:14\t8:30\n"
+    csv += "04/11/2025\tSchutz\t05:16\t6:00\n"
+    csv += "04/11/2025\tCaio\t05:14\t6:00\n"
+    csv += "04/11/2025\tThiago\t06:03\t6:00\n"
+
+    const blob = new Blob([csv], { type: "text/tab-separated-values;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", "modelo_importacao_horas.xlsx")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const importFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text
+          .trim()
+          .split("\n")
+          .filter((line) => line.trim().length > 0)
+
+        if (lines.length < 2) {
+          alert("❌ Arquivo vazio ou inválido!")
+          return
+        }
+
+        const dataLines = lines.slice(1)
+        const dayGroups: { [key: string]: Array<{ name: string; hours: string; dailyGoal: string }> } = {}
+        let validRows = 0
+
+        dataLines.forEach((line) => {
+          if (!line || !line.trim()) return
+
+          const parts = line
+            .trim()
+            .split(/\t|,/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+
+          if (parts.length < 3) return
+
+          const dateStr = parts[0]
+          const name = parts[1]
+          const hours = parts[2]
+          const dailyGoal = parts[3] || "8:30"
+
+          if (!dateStr || !name || !hours) return
+
+          let isoDate = ""
+          const ddmmyyyyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+          const yyyymmddRegex = /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+
+          const ddmmyyyyMatch = dateStr.match(ddmmyyyyRegex)
+          const yyyymmddMatch = dateStr.match(yyyymmddRegex)
+
+          if (ddmmyyyyMatch) {
+            const [, day, month, year] = ddmmyyyyMatch
+            isoDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+          } else if (yyyymmddMatch) {
+            const [, year, month, day] = yyyymmddMatch
+            isoDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+          } else {
+            console.log("[v0] Failed to parse date:", dateStr)
+            return
+          }
+
+          const timeRegex = /^(\d{1,2}):(\d{2})$/
+          if (!timeRegex.test(hours)) {
+            console.log("[v0] Failed to parse time:", hours)
+            return
+          }
+
+          validRows++
+
+          if (!dayGroups[isoDate]) {
+            dayGroups[isoDate] = []
+          }
+
+          dayGroups[isoDate].push({
+            name,
+            hours,
+            dailyGoal,
+          })
+        })
+
+        console.log("[v0] Valid rows found:", validRows)
+        console.log("[v0] Day groups:", dayGroups)
+
+        if (validRows === 0) {
+          alert("❌ Nenhuma linha válida encontrada no arquivo!")
+          setShowImportModal(false)
+          return
+        }
+
+        const newHistory = [...history]
+
+        for (const [date, empData] of Object.entries(dayGroups)) {
+          const employeesData = empData.map((emp) => ({
+            name: emp.name,
+            hours: emp.hours,
+            dailyGoal: emp.dailyGoal,
+            percentage: getNumericPercentage(emp.hours, emp.dailyGoal),
+          }))
+
+          const totalPercentage = employeesData.reduce((sum, emp) => sum + emp.percentage, 0)
+          const avgPercentage = totalPercentage / employeesData.length
+
+          const totalMinutes = employeesData.reduce((sum, emp) => sum + timeToMinutes(emp.hours), 0)
+          const avgMinutes = Math.round(totalMinutes / employeesData.length)
+          const avgHours = Math.floor(avgMinutes / 60)
+          const avgMins = avgMinutes % 60
+          const avgTime = `${avgHours}:${avgMins.toString().padStart(2, "0")}`
+
+          const dayRecord: DailyRecord = {
+            date,
+            employees: employeesData,
+            averagePercentage: avgPercentage,
+            averageTime: avgTime,
+          }
+
+          const existingIndex = newHistory.findIndex((h) => h.date === date)
+          if (existingIndex >= 0) {
+            newHistory[existingIndex] = dayRecord
+          } else {
+            newHistory.push(dayRecord)
+          }
+        }
+
+        newHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setHistory(newHistory)
+
+        localStorage.setItem("work-hours-history", JSON.stringify(newHistory))
+        alert(`✅ Importação concluída!\n\n📊 ${Object.keys(dayGroups).length} dia(s) importado(s) com sucesso!`)
+        setShowImportModal(false)
+      } catch (error) {
+        console.log("[v0] Import error:", error)
+        alert("❌ Erro ao importar arquivo: " + (error instanceof Error ? error.message : "Desconhecido"))
+      }
+    }
+
+    reader.readAsText(file, "UTF-8")
+    event.target.value = ""
   }
 
   const formatDate = (dateString: string): string => {
@@ -285,93 +453,435 @@ export default function HoursPercentageCalculator() {
     setCurrentDate(new Date().toISOString().split("T")[0])
   }
 
+  const getBarColor = (percentage: number): string => {
+    if (percentage >= 90) return "#ff8738" // laranja
+    if (percentage >= 70) return "#003a75" // azul
+    if (percentage >= 50) return "#ffa500" // amarelo
+    return "#ef4444" // vermelho
+  }
+
+  const CustomBar = (props: any) => {
+    const { fill, x, y, width, height, payload } = props
+    const barColor = getBarColor(payload.percentage)
+    return <rect x={x} y={y} width={width} height={height} fill={barColor} radius={[8, 8, 0, 0]} />
+  }
+
+  const renderCustomLabel = (props: any) => {
+    const { x, y, width, height, index, value } = props
+    const dataPoint = getChartData()[index]
+
+    if (!dataPoint) return null
+
+    const barColor = getBarColor(dataPoint.percentage)
+
+    return (
+      <g>
+        {/* Hora trabalahada */}
+        <text x={x + width / 2} y={y - 50} textAnchor="middle" fill="#000000" fontSize={12} fontWeight="bold">
+          {dataPoint.hoursWorked}
+        </text>
+        {/* Porcentagem com cor ciano/turquesa */}
+        <text x={x + width / 2} y={y - 30} textAnchor="middle" fill="#00bcd4" fontSize={13} fontWeight="bold">
+          {dataPoint.displayPercentage}%
+        </text>
+      </g>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center gap-3 mb-8">
-            <Clock className="w-8 h-8 text-indigo-600" />
-            <h1 className="text-3xl font-bold text-gray-800">Calculadora de Horas Trabalhadas</h1>
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`ml-auto px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                showHistory ? "bg-indigo-600 text-white" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-              }`}
-            >
-              <History className="w-5 h-5" />
-              {showHistory ? "Voltar" : "Ver Histórico"}
-            </button>
+    <div className="min-h-screen p-6" style={{ backgroundColor: "#ffffff" }}>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <Clock className="w-8 h-8" style={{ color: "#003a75" }} />
+            <h1 className="text-4xl font-bold" style={{ color: "#003a75" }}>
+              Calculadora de Horas
+            </h1>
           </div>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2`}
+            style={{
+              backgroundColor: showHistory ? "#ff8738" : "#003a75",
+              color: "#ffffff",
+            }}
+          >
+            <History className="w-5 h-5" />
+            {showHistory ? "Voltar" : "Ver Histórico"}
+          </button>
+        </div>
 
-          {!showHistory ? (
-            <>
-              <div className="mb-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
-                <div className="flex items-center justify-between gap-4 flex-col md:flex-row">
-                  <div className="flex-1 w-full">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">📅 Data do Apontamento</label>
-                    <input
-                      type="date"
-                      value={currentDate}
-                      onChange={(e) => setCurrentDate(e.target.value)}
-                      max={new Date().toISOString().split("T")[0]}
-                      className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg text-lg font-semibold focus:outline-none focus:border-indigo-500"
+        {showHistory ? (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-5 h-5" style={{ color: "#003a75" }} />
+                  <h3 className="font-semibold text-gray-700">Média Semanal (7 dias)</h3>
+                </div>
+                <p className="text-4xl font-bold" style={{ color: "#003a75" }}>
+                  {calculateWeeklyAverage()}%
+                </p>
+                <p className="text-sm text-gray-600 mt-1">{getWeekData().length} dias registrados</p>
+              </div>
+
+              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-5 h-5" style={{ color: "#ff8738" }} />
+                  <h3 className="font-semibold text-gray-700">Média Mensal</h3>
+                </div>
+                <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                  {calculateMonthlyAverage()}%
+                </p>
+                <p className="text-sm text-gray-600 mt-1">{getMonthData().length} dias registrados</p>
+              </div>
+            </div>
+
+            {/* Week Chart */}
+            {getWeekData().length > 0 && (
+              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+                <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+                  Evolução dos Últimos 7 Dias
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={getWeekData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(date) =>
+                        new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                      }
+                      tick={{ fill: "#4b5563", fontSize: 12 }}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Selecione a data para adicionar ou editar o apontamento
-                    </p>
-                  </div>
+                    <YAxis domain={[0, 100]} tick={{ fill: "#4b5563", fontSize: 12 }} />
+                    <Tooltip
+                      labelFormatter={(date) => formatDate(date)}
+                      formatter={(value) => [`${(value as number).toFixed(1).replace(".", ",")}%`, "Média"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="averagePercentage"
+                      stroke="#003a75"
+                      strokeWidth={3}
+                      dot={{ fill: "#003a75", r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-                  {history.find((h) => h.date === currentDate) && (
-                    <div className="px-4 py-2 bg-amber-100 border-2 border-amber-300 rounded-lg text-center">
-                      <span className="text-amber-800 font-bold text-sm">⚠️ Dia já registrado</span>
-                      <p className="text-xs text-amber-700 mt-1">Salvar irá atualizar</p>
+            {/* Detailed Report Section */}
+            <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+              <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+                📊 Relatório Detalhado por Dia
+              </h3>
+
+              {history.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  Nenhum dia registrado ainda. Salve o primeiro dia para começar o histórico!
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {history.map((day) => (
+                    <div
+                      key={day.date}
+                      className="p-4 rounded-lg border-2 bg-gray-50"
+                      style={{ borderColor: "#e5e5e5" }}
+                    >
+                      <div className="flex items-center justify-between mb-3 flex-col md:flex-row gap-4">
+                        <div>
+                          <h4 className="text-lg font-bold" style={{ color: "#003a75" }}>
+                            {formatDate(day.date)}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Tempo Médio: <strong>{day.averageTime}</strong>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="px-4 py-2 rounded-lg font-bold"
+                            style={{
+                              backgroundColor:
+                                day.averagePercentage >= 90
+                                  ? "#ffe6d5"
+                                  : day.averagePercentage >= 70
+                                    ? "#e6f0ff"
+                                    : "#fff4e6",
+                              color:
+                                day.averagePercentage >= 90
+                                  ? "#ff8738"
+                                  : day.averagePercentage >= 70
+                                    ? "#003a75"
+                                    : "#ff8738",
+                            }}
+                          >
+                            {day.averagePercentage.toFixed(1).replace(".", ",")}%
+                          </div>
+                          <button
+                            onClick={() => deleteDay(day.date)}
+                            className="px-3 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-sm"
+                            style={{ backgroundColor: "#ef4444" }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Deletar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {day.employees.map((emp, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 bg-white rounded border-l-4"
+                            style={{ borderLeftColor: "#003a75" }}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-semibold text-sm" style={{ color: "#003a75" }}>
+                                {emp.name}
+                              </span>
+                              <span
+                                className="px-2 py-1 rounded text-xs font-bold"
+                                style={{
+                                  backgroundColor:
+                                    emp.percentage >= 90
+                                      ? "#ffe6d5"
+                                      : emp.percentage >= 70
+                                        ? "#e6f0ff"
+                                        : emp.percentage >= 50
+                                          ? "#fff4e6"
+                                          : "#fee2e2",
+                                  color:
+                                    emp.percentage >= 90
+                                      ? "#ff8738"
+                                      : emp.percentage >= 70
+                                        ? "#003a75"
+                                        : emp.percentage >= 50
+                                          ? "#ff8738"
+                                          : "#991b1b",
+                                }}
+                              >
+                                {emp.percentage.toFixed(1).replace(".", ",")}%
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              <p>
+                                <strong>Horas:</strong> {emp.hours}
+                              </p>
+                              <p>
+                                <strong>Meta:</strong> {emp.dailyGoal}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                  ))}
+                </div>
+              )}
+            </div>
 
-                  <button
-                    onClick={clearCurrentDay}
-                    className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors border-2 border-gray-300"
-                  >
-                    🆕 Novo Dia
-                  </button>
+            {/* Summary Table */}
+            <div
+              className="p-6 rounded-lg border-2 overflow-x-auto"
+              style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+            >
+              <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+                📋 Resumo dos Dias
+              </h3>
+              {history.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">Nenhum dia registrado ainda.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ backgroundColor: "#f5f5f5", borderBottom: "2px solid #003a75" }}>
+                      <th className="px-4 py-3 text-left font-semibold" style={{ color: "#003a75" }}>
+                        Data
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                        Média %
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                        Tempo Médio
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                        Ação
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((day) => (
+                      <tr key={day.date} style={{ borderBottom: "1px solid #e5e5e5" }}>
+                        <td className="px-4 py-3 font-semibold">{formatDate(day.date)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span style={{ color: "#003a75", fontWeight: "bold" }}>
+                            {day.averagePercentage.toFixed(1).replace(".", ",")}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">{day.averageTime}</td>
+                        <td className="px-4 py-3 text-center">
+                          {day.averagePercentage >= 90 ? (
+                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
+                              ✓ Meta
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">
+                              Faltou {(90 - day.averagePercentage).toFixed(1)}%
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => loadHistoricalDay(day.date)}
+                            className="px-3 py-1 rounded text-xs font-semibold text-white"
+                            style={{ backgroundColor: "#003a75" }}
+                          >
+                            Editar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Export and Import Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={exportToExcel}
+                className="py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#ff8738" }}
+              >
+                <Download className="w-5 h-5" />
+                Exportar Relatório Completo
+              </button>
+
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#003a75" }}
+              >
+                <Upload className="w-5 h-5" />
+                Importar Apontamentos
+              </button>
+            </div>
+
+            {/* Import Modal */}
+            {showImportModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div
+                  className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-2"
+                  style={{ borderColor: "#003a75" }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold" style={{ color: "#003a75" }}>
+                      Importar Apontamentos
+                    </h2>
+                    <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <button
+                      onClick={downloadImportTemplate}
+                      className="w-full py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                      style={{ backgroundColor: "#ff8738" }}
+                    >
+                      <Download className="w-5 h-5" />
+                      Baixar Modelo Excel
+                    </button>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-3" style={{ color: "#003a75" }}>
+                        Selecionar arquivo
+                      </label>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.txt"
+                        onChange={importFromFile}
+                        className="w-full px-4 py-3 border-2 rounded-lg cursor-pointer focus:outline-none"
+                        style={{
+                          borderColor: "#003a75",
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setShowImportModal(false)}
+                      className="w-full py-3 rounded-lg font-semibold border-2 transition-colors"
+                      style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#003a75" }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 bg-indigo-50 rounded-xl">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Jornada de Trabalho Padrão</label>
-                  <div className="flex gap-4 items-center">
-                    <input
-                      type="text"
-                      value={workTime}
-                      onChange={(e) => setWorkTime(e.target.value)}
-                      placeholder="8:30"
-                      className="px-4 py-3 border-2 border-indigo-200 rounded-lg w-32 text-lg font-semibold focus:outline-none focus:border-indigo-500"
-                    />
-                    <span className="text-gray-600">({timeToMinutes(workTime)} minutos)</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">Exemplos comuns: 8:30 ou 6:00</p>
-                </div>
-
-                <div className="p-6 bg-green-50 rounded-xl border-2 border-green-200">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">🎯 Meta da Equipe</label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-5xl font-bold text-green-600">90%</span>
-                  </div>
-                  <p className="text-sm text-green-700 mt-2 font-medium">Objetivo diário de produtividade</p>
-                </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Date and Info Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+                <label className="block text-sm font-semibold mb-3" style={{ color: "#003a75" }}>
+                  📅 Data do Apontamento
+                </label>
+                <input
+                  type="date"
+                  value={currentDate}
+                  onChange={(e) => setCurrentDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none"
+                  style={{ borderColor: "#003a75" }}
+                />
               </div>
 
-              <div className="space-y-4 mb-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">Funcionários</h2>
+              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}>
+                <label className="block text-sm font-semibold mb-3" style={{ color: "#ff8738" }}>
+                  🎯 Meta da Equipe
+                </label>
+                <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                  90%
+                </p>
+              </div>
 
+              <div className="flex gap-3">
+                <button
+                  onClick={clearCurrentDay}
+                  className="px-3 py-1 rounded-lg font-semibold border-2 transition-colors text-sm"
+                  style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#d1d5db" }}
+                >
+                  🆕 Novo Dia
+                </button>
+                {history.find((h) => h.date === currentDate) && (
+                  <div className="flex items-center px-4 py-2 bg-amber-100 border-2 border-amber-300 rounded-lg">
+                    <span className="text-amber-800 font-bold text-xs">⚠️ Já registrado</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Employees Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-4" style={{ color: "#003a75" }}>
+                Funcionários
+              </h2>
+
+              <div className="space-y-3">
                 {employees.map((employee, index) => {
                   const percentage = calculatePercentage(employee.hours, employee.dailyGoal)
 
                   return (
                     <div
                       key={employee.id}
-                      className="flex gap-4 items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors flex-col md:flex-row"
+                      className="flex gap-4 items-stretch p-4 rounded-lg border-2 flex-col md:flex-row md:items-center"
+                      style={{ backgroundColor: "#f5f5f5", borderColor: "#e5e5e5" }}
                     >
                       <div className="flex-1 w-full">
                         <input
@@ -379,19 +889,23 @@ export default function HoursPercentageCalculator() {
                           value={employee.name}
                           onChange={(e) => updateEmployee(employee.id, "name", e.target.value)}
                           placeholder={`Funcionário ${index + 1}`}
-                          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                          className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none"
+                          style={{ borderColor: "#003a75" }}
                         />
                       </div>
 
-                      <div className="w-full md:w-28">
-                        <label className="text-xs text-gray-500 block mb-1">Meta Diária</label>
-                        <div className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-center bg-gray-100 font-semibold text-gray-700">
+                      <div className="w-full md:w-24">
+                        <label className="text-xs text-gray-500 block mb-1 font-semibold">Meta</label>
+                        <div
+                          className="w-full px-3 py-2 border-2 rounded-lg text-center bg-gray-200 font-semibold text-sm"
+                          style={{ color: "#003a75", borderColor: "#e5e5e5" }}
+                        >
                           {employee.dailyGoal}
                         </div>
                       </div>
 
-                      <div className="w-full md:w-32">
-                        <label className="text-xs text-gray-500 block mb-1">Horas Trabalhadas</label>
+                      <div className="w-full md:w-28">
+                        <label className="text-xs text-gray-500 block mb-1 font-semibold">Horas</label>
                         <input
                           id={`hours-input-${index}`}
                           type="text"
@@ -400,20 +914,24 @@ export default function HoursPercentageCalculator() {
                           onKeyDown={(e) => handleKeyDown(e, index)}
                           placeholder="00:00"
                           maxLength={5}
-                          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg text-center focus:outline-none focus:border-indigo-500 font-mono text-lg"
+                          className="w-full px-3 py-2 border-2 rounded-lg text-center focus:outline-none font-mono"
+                          style={{ borderColor: "#003a75" }}
                         />
                       </div>
 
-                      <div className="w-full md:w-32 flex items-center justify-center gap-2 bg-indigo-100 rounded-lg py-2 px-4">
-                        <Percent className="w-4 h-4 text-indigo-600" />
-                        <span className="text-xl font-bold text-indigo-600">{employee.hours ? percentage : "-"}</span>
+                      <div
+                        className="w-full md:w-24 flex items-center justify-center rounded-lg py-2 px-4 font-bold text-white"
+                        style={{ backgroundColor: "#e8d7d0" }}
+                      >
+                        <span style={{ color: "#ff8738" }}>{employee.hours ? percentage : "0,0"}%</span>
                       </div>
 
                       <button
                         onClick={() => removeEmployee(employee.id)}
-                        className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-semibold"
+                        className="px-2 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-sm"
+                        style={{ backgroundColor: "#fee2e2" }}
                       >
-                        ✕
+                        <span style={{ color: "#ef4444" }}>✕</span>
                       </button>
                     </div>
                   )
@@ -422,328 +940,134 @@ export default function HoursPercentageCalculator() {
 
               <button
                 onClick={addEmployee}
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md"
+                className="w-full mt-4 py-2 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm"
+                style={{ backgroundColor: "#003a75" }}
               >
                 + Adicionar Funcionário
               </button>
-
-              <button
-                onClick={saveToHistory}
-                className="w-full mt-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md flex items-center justify-center gap-2"
-              >
-                <Save className="w-5 h-5" />
-                {history.find((h) => h.date === currentDate)
-                  ? `Atualizar Dia ${formatDate(currentDate)}`
-                  : `Salvar Dia ${formatDate(currentDate)}`}
-              </button>
-
-              {getChartData().length > 0 && (
-                <div className="mt-8 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-5 h-5 text-green-600" />
-                        <h3 className="font-semibold text-gray-700">Tempo Médio</h3>
-                      </div>
-                      <p className="text-3xl font-bold text-green-600">{calculateAverageTime()}</p>
-                    </div>
-
-                    <div className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="w-5 h-5 text-purple-600" />
-                        <h3 className="font-semibold text-gray-700">Média da Equipe</h3>
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold text-purple-600">{calculateAveragePercentage()}%</p>
-                        {Number.parseFloat(calculateAveragePercentage().replace(",", ".")) >= 90 ? (
-                          <span className="text-green-600 font-bold text-lg">✓ Meta atingida!</span>
-                        ) : (
-                          <span className="text-amber-600 font-bold text-lg">
-                            Faltam{" "}
-                            {(90 - Number.parseFloat(calculateAveragePercentage().replace(",", ".")))
-                              .toFixed(1)
-                              .replace(".", ",")}
-                            %
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 bg-gray-200 rounded-full h-3 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            Number.parseFloat(calculateAveragePercentage().replace(",", ".")) >= 90
-                              ? "bg-green-500"
-                              : "bg-purple-500"
-                          }`}
-                          style={{
-                            width: `${Math.min(Number.parseFloat(calculateAveragePercentage().replace(",", ".")), 100)}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>0%</span>
-                        <span className="font-bold text-green-600">Meta: 90%</span>
-                        <span>100%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl">
-                    <div className="flex items-center gap-2 mb-4">
-                      <BarChart3 className="w-6 h-6 text-slate-600" />
-                      <h3 className="text-xl font-semibold text-gray-800">Porcentagem Trabalhada por Funcionário</h3>
-                    </div>
-                    <ResponsiveContainer width="100%" height={350}>
-                      <BarChart data={getChartData()} margin={{ top: 30, right: 30, left: 0, bottom: 100 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fill: "#4b5563", fontSize: 13 }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={120}
-                        />
-                        <YAxis
-                          tick={{ fill: "#4b5563", fontSize: 13 }}
-                          label={{
-                            value: "Porcentagem (%)",
-                            angle: -90,
-                            position: "insideLeft",
-                            fill: "#4b5563",
-                            offset: 10,
-                          }}
-                          domain={[0, 100]}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="percentage" radius={[8, 8, 0, 0]}>
-                          <LabelList
-                            dataKey="displayPercentage"
-                            position="top"
-                            fill="#1f2937"
-                            fontSize={13}
-                            fontWeight="bold"
-                            formatter={(value) => `${value}%`}
-                          />
-                          {getChartData().map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={
-                                entry.percentage >= 90
-                                  ? "#10b981"
-                                  : entry.percentage >= 70
-                                    ? "#3b82f6"
-                                    : entry.percentage >= 50
-                                      ? "#f59e0b"
-                                      : "#ef4444"
-                              }
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-
-                    <div className="flex gap-4 justify-center mt-4 text-sm flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-green-500"></div>
-                        <span className="text-gray-600">≥90%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-blue-500"></div>
-                        <span className="text-gray-600">70-89%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-amber-500"></div>
-                        <span className="text-gray-600">50-69%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-red-500"></div>
-                        <span className="text-gray-600">&lt;50%</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
-                      <div className="bg-gray-100 px-4 py-2 border-b-2 border-gray-200">
-                        <h4 className="font-semibold text-gray-700">Detalhes por Funcionário</h4>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4">
-                        {getChartData().map((emp, index) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-gray-700 text-sm">{emp.name}</span>
-                              <div
-                                className="px-2 py-1 rounded font-bold text-sm"
-                                style={{
-                                  backgroundColor:
-                                    emp.percentage >= 90
-                                      ? "#dcfce7"
-                                      : emp.percentage >= 70
-                                        ? "#dbeafe"
-                                        : emp.percentage >= 50
-                                          ? "#fef3c7"
-                                          : "#fee2e2",
-                                  color:
-                                    emp.percentage >= 90
-                                      ? "#166534"
-                                      : emp.percentage >= 70
-                                        ? "#1e40af"
-                                        : emp.percentage >= 50
-                                          ? "#92400e"
-                                          : "#991b1b",
-                                }}
-                              >
-                                {emp.displayPercentage}%
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">Meta: {emp.goal}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  <strong>Como usar:</strong> Selecione a data do apontamento acima. Cada funcionário tem sua meta
-                  diária pré-definida (Raposo, Mika e Luiz: 8:30h | Schutz, Caio e Thiago: 6:00h). Insira as horas
-                  trabalhadas e clique em "Salvar" para registrar ou atualizar. Use "Ver Histórico" para consultar
-                  registros anteriores.
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-gray-700">Média Semanal (7 dias)</h3>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-600">{calculateWeeklyAverage()}%</p>
-                  <p className="text-sm text-gray-600 mt-1">{getWeekData().length} dias registrados</p>
-                </div>
-
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                    <h3 className="font-semibold text-gray-700">Média Mensal</h3>
-                  </div>
-                  <p className="text-3xl font-bold text-purple-600">{calculateMonthlyAverage()}%</p>
-                  <p className="text-sm text-gray-600 mt-1">{getMonthData().length} dias registrados</p>
-                </div>
-              </div>
-
-              {getWeekData().length > 0 && (
-                <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Evolução dos Últimos 7 Dias</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={getWeekData()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(date) =>
-                          new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-                        }
-                        tick={{ fill: "#4b5563", fontSize: 12 }}
-                      />
-                      <YAxis domain={[0, 100]} tick={{ fill: "#4b5563", fontSize: 12 }} />
-                      <Tooltip
-                        labelFormatter={(date) => formatDate(date)}
-                        formatter={(value) => [`${(value as number).toFixed(1).replace(".", ",")}%`, "Média"]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="averagePercentage"
-                        stroke="#6366f1"
-                        strokeWidth={3}
-                        dot={{ fill: "#6366f1", r: 5 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
-                <div className="bg-gray-100 px-6 py-3 border-b-2 border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800">Histórico de Dias Trabalhados</h3>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {history.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      Nenhum dia registrado ainda. Salve o primeiro dia para começar o histórico!
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Data</th>
-                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                              Média
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                              Tempo Médio
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                              Meta
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                              Ação
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {history.map((day) => (
-                            <tr key={day.date} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 text-sm font-medium text-gray-800">{formatDate(day.date)}</td>
-                              <td className="px-6 py-4 text-center">
-                                <span className="text-lg font-bold text-indigo-600">
-                                  {day.averagePercentage.toFixed(1).replace(".", ",")}%
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-center text-sm text-gray-700 font-semibold">
-                                {day.averageTime}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                {day.averagePercentage >= 90 ? (
-                                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                                    ✓ Atingida
-                                  </span>
-                                ) : (
-                                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
-                                    Faltou {(90 - day.averagePercentage).toFixed(1)}%
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <button
-                                  onClick={() => loadHistoricalDay(day.date)}
-                                  className="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 text-xs font-semibold"
-                                >
-                                  ✏️ Editar
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={exportToExcel}
-                className="w-full py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2"
-              >
-                📊 Exportar para CSV
-              </button>
             </div>
-          )}
-        </div>
+
+            {/* Save Button */}
+            <button
+              onClick={saveToHistory}
+              className="w-full py-4 text-white rounded-lg font-bold text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2 mb-8"
+              style={{ backgroundColor: "#ff8738" }}
+            >
+              <Save className="w-5 h-5" />
+              Salvar Dia {formatDate(currentDate)}
+            </button>
+
+            {/* Charts Section */}
+            {getChartData().length > 0 && (
+              <div className="space-y-6">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div
+                    className="p-6 rounded-lg border-2"
+                    style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-5 h-5" style={{ color: "#ff8738" }} />
+                      <h3 className="font-semibold text-gray-700">Tempo Médio</h3>
+                    </div>
+                    <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                      {calculateAverageTime()}
+                    </p>
+                  </div>
+
+                  <div
+                    className="p-6 rounded-lg border-2"
+                    style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-5 h-5" style={{ color: "#003a75" }} />
+                      <h3 className="font-semibold text-gray-700">Média da Equipe</h3>
+                    </div>
+                    <p className="text-4xl font-bold" style={{ color: "#003a75" }}>
+                      {calculateAveragePercentage()}%
+                    </p>
+                    {Number.parseFloat(calculateAveragePercentage().replace(",", ".")) >= 90 ? (
+                      <p className="text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
+                        ✓ Meta atingida!
+                      </p>
+                    ) : (
+                      <p className="text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
+                        Faltam{" "}
+                        {(90 - Number.parseFloat(calculateAveragePercentage().replace(",", ".")))
+                          .toFixed(1)
+                          .replace(".", ",")}
+                        %
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+                  <div className="flex items-center gap-2 mb-6">
+                    <BarChart3 className="w-6 h-6" style={{ color: "#003a75" }} />
+                    <h3 className="text-xl font-bold" style={{ color: "#003a75" }}>
+                      Porcentagem Trabalhada por Funcionário
+                    </h3>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={getChartData()} margin={{ top: 100, right: 20, left: 0, bottom: 80 }}>
+                      <CartesianGrid stroke="#e5e7eb" vertical={true} horizontal={true} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: "#4b5563", fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                      />
+                      <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} domain={[0, 120]} width={50} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="percentage" shape={<CustomBar />}>
+                        <LabelList
+                          dataKey="hoursWorked"
+                          position="top"
+                          fill="#000000"
+                          fontSize={12}
+                          fontWeight="bold"
+                          offset={45}
+                        />
+                        <LabelList
+                          dataKey="displayPercentage"
+                          position="top"
+                          fill="#00bcd4"
+                          fontSize={13}
+                          fontWeight="bold"
+                          offset={25}
+                          formatter={(value) => `${value}%`}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+
+                  <div className="flex gap-6 justify-center mt-6 text-sm flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ff8738" }}></div>
+                      <span className="text-gray-600 font-semibold">≥90%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#003a75" }}></div>
+                      <span className="text-gray-600 font-semibold">70-89%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ffa500" }}></div>
+                      <span className="text-gray-600 font-semibold">50-69%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ef4444" }}></div>
+                      <span className="text-gray-600 font-semibold">&lt;50%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
