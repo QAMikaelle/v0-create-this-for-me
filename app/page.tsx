@@ -454,10 +454,10 @@ export default function HoursPercentageCalculator() {
   }
 
   const getBarColor = (percentage: number): string => {
-    if (percentage >= 90) return "#ff8738" // laranja
-    if (percentage >= 70) return "#003a75" // azul
-    if (percentage >= 50) return "#ffa500" // amarelo
-    return "#ef4444" // vermelho
+    if (percentage >= 90) return "#22c55e" // green
+    if (percentage >= 70) return "#ff8738" // orange
+    if (percentage >= 50) return "#003a75" // blue
+    return "#ef4444" // red
   }
 
   const CustomBar = (props: any) => {
@@ -605,15 +605,15 @@ export default function HoursPercentageCalculator() {
                             style={{
                               backgroundColor:
                                 day.averagePercentage >= 90
-                                  ? "#ffe6d5"
+                                  ? "#e8f5e9"
                                   : day.averagePercentage >= 70
-                                    ? "#e6f0ff"
+                                    ? "#ffe6d5"
                                     : "#fff4e6",
                               color:
                                 day.averagePercentage >= 90
-                                  ? "#ff8738"
+                                  ? "#22c55e"
                                   : day.averagePercentage >= 70
-                                    ? "#003a75"
+                                    ? "#ff8738"
                                     : "#ff8738",
                             }}
                           >
@@ -646,17 +646,17 @@ export default function HoursPercentageCalculator() {
                                 style={{
                                   backgroundColor:
                                     emp.percentage >= 90
-                                      ? "#ffe6d5"
+                                      ? "#e8f5e9"
                                       : emp.percentage >= 70
-                                        ? "#e6f0ff"
+                                        ? "#ffe6d5"
                                         : emp.percentage >= 50
                                           ? "#fff4e6"
                                           : "#fee2e2",
                                   color:
                                     emp.percentage >= 90
-                                      ? "#ff8738"
+                                      ? "#22c55e"
                                       : emp.percentage >= 70
-                                        ? "#003a75"
+                                        ? "#ff8738"
                                         : emp.percentage >= 50
                                           ? "#ff8738"
                                           : "#991b1b",
@@ -1047,15 +1047,15 @@ export default function HoursPercentageCalculator() {
 
                   <div className="flex gap-6 justify-center mt-6 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ff8738" }}></div>
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#22c55e" }}></div>
                       <span className="text-gray-600 font-semibold">≥90%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#003a75" }}></div>
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ff8738" }}></div>
                       <span className="text-gray-600 font-semibold">70-89%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ffa500" }}></div>
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#003a75" }}></div>
                       <span className="text-gray-600 font-semibold">50-69%</span>
                     </div>
                     <div className="flex items-center gap-2">
