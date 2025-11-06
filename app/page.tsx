@@ -274,13 +274,14 @@ export default function HoursPercentageCalculator() {
   }
 
   const downloadImportTemplate = () => {
-    let csv = "Data\tFuncionário\tHoras Trabalhadas\tMeta Diária\n"
-    csv += "04/11/2025\tRaposo\t08:30\t8:30\n"
-    csv += "04/11/2025\tMika\t08:35\t8:30\n"
-    csv += "04/11/2025\tLuiz\t08:14\t8:30\n"
-    csv += "04/11/2025\tSchutz\t05:16\t6:00\n"
-    csv += "04/11/2025\tCaio\t05:14\t6:00\n"
-    csv += "04/11/2025\tThiago\t06:03\t6:00\n"
+    let csv =
+      "Data\tMédia (%)\tTempo Médio\tMeta Atingida\tFuncionário\tHoras Trabalhadas\tMeta Diária\tPorcentagem Individual (%)\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tRaposo\t07:59\t8:30\t93.9\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tMika\t08:49\t8:30\t103.7\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tLuiz\t06:33\t8:30\t77.1\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tSchutz\t06:06\t6:00\t101.7\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tCaio\t05:44\t6:00\t95.6\n"
+    csv += "04/11/2025\t95.4\t6:52\tSim\tThiago\t06:01\t6:00\t100.3\n"
 
     const blob = new Blob([csv], { type: "text/tab-separated-values;charset=utf-8;" })
     const link = document.createElement("a")
@@ -489,60 +490,69 @@ export default function HoursPercentageCalculator() {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: "#ffffff" }}>
+    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: "#ffffff" }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <Clock className="w-8 h-8" style={{ color: "#003a75" }} />
-            <h1 className="text-4xl font-bold" style={{ color: "#003a75" }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <Clock className="w-6 md:w-8 h-6 md:h-8" style={{ color: "#003a75" }} />
+            <h1 className="text-2xl md:text-4xl font-bold" style={{ color: "#003a75" }}>
               Calculadora de Horas
             </h1>
           </div>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2`}
+            className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-sm md:text-base`}
             style={{
               backgroundColor: showHistory ? "#ff8738" : "#003a75",
               color: "#ffffff",
             }}
           >
-            <History className="w-5 h-5" />
+            <History className="w-4 md:w-5 h-4 md:h-5" />
             {showHistory ? "Voltar" : "Ver Histórico"}
           </button>
         </div>
 
         {showHistory ? (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+              <div
+                className="p-4 md:p-6 rounded-lg border-2"
+                style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-5 h-5" style={{ color: "#003a75" }} />
-                  <h3 className="font-semibold text-gray-700">Média Semanal (7 dias)</h3>
+                  <Calendar className="w-4 md:w-5 h-4 md:h-5" style={{ color: "#003a75" }} />
+                  <h3 className="font-semibold text-sm md:text-base text-gray-700">Média Semanal (7 dias)</h3>
                 </div>
-                <p className="text-4xl font-bold" style={{ color: "#003a75" }}>
+                <p className="text-3xl md:text-4xl font-bold" style={{ color: "#003a75" }}>
                   {calculateWeeklyAverage()}%
                 </p>
-                <p className="text-sm text-gray-600 mt-1">{getWeekData().length} dias registrados</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">{getWeekData().length} dias registrados</p>
               </div>
 
-              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}>
+              <div
+                className="p-4 md:p-6 rounded-lg border-2"
+                style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-5 h-5" style={{ color: "#ff8738" }} />
-                  <h3 className="font-semibold text-gray-700">Média Mensal</h3>
+                  <Calendar className="w-4 md:w-5 h-4 md:h-5" style={{ color: "#ff8738" }} />
+                  <h3 className="font-semibold text-sm md:text-base text-gray-700">Média Mensal</h3>
                 </div>
-                <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                <p className="text-3xl md:text-4xl font-bold" style={{ color: "#ff8738" }}>
                   {calculateMonthlyAverage()}%
                 </p>
-                <p className="text-sm text-gray-600 mt-1">{getMonthData().length} dias registrados</p>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">{getMonthData().length} dias registrados</p>
               </div>
             </div>
 
             {/* Week Chart */}
             {getWeekData().length > 0 && (
-              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
-                <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+              <div
+                className="p-4 md:p-6 rounded-lg border-2"
+                style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+              >
+                <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4" style={{ color: "#003a75" }}>
                   Evolução dos Últimos 7 Dias
                 </h3>
                 <ResponsiveContainer width="100%" height={250}>
@@ -553,9 +563,9 @@ export default function HoursPercentageCalculator() {
                       tickFormatter={(date) =>
                         new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
                       }
-                      tick={{ fill: "#4b5563", fontSize: 12 }}
+                      tick={{ fill: "#4b5563", fontSize: 11 }}
                     />
-                    <YAxis domain={[0, 100]} tick={{ fill: "#4b5563", fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fill: "#4b5563", fontSize: 11 }} />
                     <Tooltip
                       labelFormatter={(date) => formatDate(date)}
                       formatter={(value) => [`${(value as number).toFixed(1).replace(".", ",")}%`, "Média"]}
@@ -573,35 +583,38 @@ export default function HoursPercentageCalculator() {
             )}
 
             {/* Detailed Report Section */}
-            <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
-              <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+            <div
+              className="p-4 md:p-6 rounded-lg border-2"
+              style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+            >
+              <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4" style={{ color: "#003a75" }}>
                 📊 Relatório Detalhado por Dia
               </h3>
 
               {history.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-6 md:p-8 text-center text-gray-500 text-sm md:text-base">
                   Nenhum dia registrado ainda. Salve o primeiro dia para começar o histórico!
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {history.map((day) => (
                     <div
                       key={day.date}
-                      className="p-4 rounded-lg border-2 bg-gray-50"
+                      className="p-3 md:p-4 rounded-lg border-2 bg-gray-50"
                       style={{ borderColor: "#e5e5e5" }}
                     >
-                      <div className="flex items-center justify-between mb-3 flex-col md:flex-row gap-4">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-3 gap-2 md:gap-4">
                         <div>
-                          <h4 className="text-lg font-bold" style={{ color: "#003a75" }}>
+                          <h4 className="text-base md:text-lg font-bold" style={{ color: "#003a75" }}>
                             {formatDate(day.date)}
                           </h4>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs md:text-sm text-gray-600">
                             Tempo Médio: <strong>{day.averageTime}</strong>
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 w-full md:w-auto">
                           <div
-                            className="px-4 py-2 rounded-lg font-bold"
+                            className="px-3 md:px-4 py-2 rounded-lg font-bold text-sm"
                             style={{
                               backgroundColor:
                                 day.averagePercentage >= 90
@@ -621,24 +634,24 @@ export default function HoursPercentageCalculator() {
                           </div>
                           <button
                             onClick={() => deleteDay(day.date)}
-                            className="px-3 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-sm"
+                            className="px-2 md:px-3 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-xs md:text-sm"
                             style={{ backgroundColor: "#ef4444" }}
                           >
-                            <Trash2 className="w-4 h-4" />
-                            Deletar
+                            <Trash2 className="w-3 md:w-4 h-3 md:h-4" />
+                            <span className="hidden md:inline ml-1">Deletar</span>
                           </button>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {day.employees.map((emp, idx) => (
                           <div
                             key={idx}
-                            className="p-3 bg-white rounded border-l-4"
+                            className="p-2 md:p-3 bg-white rounded border-l-4 text-sm"
                             style={{ borderLeftColor: "#003a75" }}
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <span className="font-semibold text-sm" style={{ color: "#003a75" }}>
+                              <span className="font-semibold text-xs md:text-sm" style={{ color: "#003a75" }}>
                                 {emp.name}
                               </span>
                               <span
@@ -665,7 +678,7 @@ export default function HoursPercentageCalculator() {
                                 {emp.percentage.toFixed(1).replace(".", ",")}%
                               </span>
                             </div>
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-gray-600 space-y-1">
                               <p>
                                 <strong>Horas:</strong> {emp.hours}
                               </p>
@@ -684,31 +697,31 @@ export default function HoursPercentageCalculator() {
 
             {/* Summary Table */}
             <div
-              className="p-6 rounded-lg border-2 overflow-x-auto"
+              className="p-3 md:p-6 rounded-lg border-2 overflow-x-auto"
               style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
             >
-              <h3 className="text-xl font-bold mb-4" style={{ color: "#003a75" }}>
+              <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4" style={{ color: "#003a75" }}>
                 📋 Resumo dos Dias
               </h3>
               {history.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">Nenhum dia registrado ainda.</div>
+                <div className="p-6 md:p-8 text-center text-gray-500 text-sm">Nenhum dia registrado ainda.</div>
               ) : (
-                <table className="w-full text-sm">
+                <table className="w-full text-xs md:text-sm">
                   <thead>
                     <tr style={{ backgroundColor: "#f5f5f5", borderBottom: "2px solid #003a75" }}>
-                      <th className="px-4 py-3 text-left font-semibold" style={{ color: "#003a75" }}>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-left font-semibold" style={{ color: "#003a75" }}>
                         Data
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-center font-semibold" style={{ color: "#003a75" }}>
                         Média %
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
-                        Tempo Médio
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                        Tempo
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-center font-semibold" style={{ color: "#003a75" }}>
                         Status
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold" style={{ color: "#003a75" }}>
+                      <th className="px-2 md:px-4 py-2 md:py-3 text-center font-semibold" style={{ color: "#003a75" }}>
                         Ação
                       </th>
                     </tr>
@@ -716,28 +729,30 @@ export default function HoursPercentageCalculator() {
                   <tbody>
                     {history.map((day) => (
                       <tr key={day.date} style={{ borderBottom: "1px solid #e5e5e5" }}>
-                        <td className="px-4 py-3 font-semibold">{formatDate(day.date)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span style={{ color: "#003a75", fontWeight: "bold" }}>
+                        <td className="px-2 md:px-4 py-2 md:py-3 font-semibold text-xs md:text-sm">
+                          {formatDate(day.date)}
+                        </td>
+                        <td className="px-2 md:px-4 py-2 md:py-3 text-center">
+                          <span style={{ color: "#003a75", fontWeight: "bold" }} className="text-xs md:text-sm">
                             {day.averagePercentage.toFixed(1).replace(".", ",")}%
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">{day.averageTime}</td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-2 md:px-4 py-2 md:py-3 text-center text-xs md:text-sm">{day.averageTime}</td>
+                        <td className="px-2 md:px-4 py-2 md:py-3 text-center">
                           {day.averagePercentage >= 90 ? (
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
+                            <span className="px-2 md:px-3 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
                               ✓ Meta
                             </span>
                           ) : (
-                            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">
+                            <span className="px-2 md:px-3 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">
                               Faltou {(90 - day.averagePercentage).toFixed(1)}%
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-2 md:px-4 py-2 md:py-3 text-center">
                           <button
                             onClick={() => loadHistoricalDay(day.date)}
-                            className="px-3 py-1 rounded text-xs font-semibold text-white"
+                            className="px-2 md:px-3 py-1 rounded text-xs font-semibold text-white"
                             style={{ backgroundColor: "#003a75" }}
                           >
                             Editar
@@ -751,22 +766,22 @@ export default function HoursPercentageCalculator() {
             </div>
 
             {/* Export and Import Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <button
                 onClick={exportToExcel}
-                className="py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                className="py-3 md:py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
                 style={{ backgroundColor: "#ff8738" }}
               >
-                <Download className="w-5 h-5" />
-                Exportar Relatório Completo
+                <Download className="w-4 md:w-5 h-4 md:h-5" />
+                Exportar Relatório
               </button>
 
               <button
                 onClick={() => setShowImportModal(true)}
-                className="py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                className="py-3 md:py-4 text-white rounded-lg font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
                 style={{ backgroundColor: "#003a75" }}
               >
-                <Upload className="w-5 h-5" />
+                <Upload className="w-4 md:w-5 h-4 md:h-5" />
                 Importar Apontamentos
               </button>
             </div>
@@ -775,37 +790,40 @@ export default function HoursPercentageCalculator() {
             {showImportModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div
-                  className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-2"
+                  className="bg-white rounded-lg shadow-2xl p-6 md:p-8 max-w-md w-full border-2"
                   style={{ borderColor: "#003a75" }}
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold" style={{ color: "#003a75" }}>
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <h2 className="text-xl md:text-2xl font-bold" style={{ color: "#003a75" }}>
                       Importar Apontamentos
                     </h2>
                     <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
-                      <X className="w-6 h-6" />
+                      <X className="w-5 md:w-6 h-5 md:h-6" />
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <button
                       onClick={downloadImportTemplate}
-                      className="w-full py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
                       style={{ backgroundColor: "#ff8738" }}
                     >
-                      <Download className="w-5 h-5" />
+                      <Download className="w-4 md:w-5 h-4 md:h-5" />
                       Baixar Modelo Excel
                     </button>
 
                     <div>
-                      <label className="block text-sm font-semibold mb-3" style={{ color: "#003a75" }}>
+                      <label
+                        className="block text-xs md:text-sm font-semibold mb-2 md:mb-3"
+                        style={{ color: "#003a75" }}
+                      >
                         Selecionar arquivo
                       </label>
                       <input
                         type="file"
                         accept=".xlsx,.xls,.csv,.txt"
                         onChange={importFromFile}
-                        className="w-full px-4 py-3 border-2 rounded-lg cursor-pointer focus:outline-none"
+                        className="w-full px-3 md:px-4 py-2 md:py-3 border-2 rounded-lg cursor-pointer focus:outline-none text-sm"
                         style={{
                           borderColor: "#003a75",
                         }}
@@ -814,7 +832,7 @@ export default function HoursPercentageCalculator() {
 
                     <button
                       onClick={() => setShowImportModal(false)}
-                      className="w-full py-3 rounded-lg font-semibold border-2 transition-colors"
+                      className="w-full py-2 md:py-3 rounded-lg font-semibold border-2 transition-colors text-sm md:text-base"
                       style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#003a75" }}
                     >
                       Cancelar
@@ -825,11 +843,14 @@ export default function HoursPercentageCalculator() {
             )}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Date and Info Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
-                <label className="block text-sm font-semibold mb-3" style={{ color: "#003a75" }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+              <div
+                className="p-4 md:p-6 rounded-lg border-2"
+                style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+              >
+                <label className="block text-xs md:text-sm font-semibold mb-2 md:mb-3" style={{ color: "#003a75" }}>
                   📅 Data do Apontamento
                 </label>
                 <input
@@ -837,30 +858,33 @@ export default function HoursPercentageCalculator() {
                   value={currentDate}
                   onChange={(e) => setCurrentDate(e.target.value)}
                   max={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none"
+                  className="w-full px-3 md:px-4 py-2 md:py-2 border-2 rounded-lg focus:outline-none text-sm"
                   style={{ borderColor: "#003a75" }}
                 />
               </div>
 
-              <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}>
-                <label className="block text-sm font-semibold mb-3" style={{ color: "#ff8738" }}>
+              <div
+                className="p-4 md:p-6 rounded-lg border-2"
+                style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}
+              >
+                <label className="block text-xs md:text-sm font-semibold mb-2 md:mb-3" style={{ color: "#ff8738" }}>
                   🎯 Meta da Equipe
                 </label>
-                <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                <p className="text-3xl md:text-4xl font-bold" style={{ color: "#ff8738" }}>
                   90%
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 <button
                   onClick={clearCurrentDay}
-                  className="px-3 py-1 rounded-lg font-semibold border-2 transition-colors text-sm"
+                  className="px-3 md:px-4 py-2 md:py-3 rounded-lg font-semibold border-2 transition-colors text-xs md:text-sm flex-1"
                   style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#d1d5db" }}
                 >
                   🆕 Novo Dia
                 </button>
                 {history.find((h) => h.date === currentDate) && (
-                  <div className="flex items-center px-4 py-2 bg-amber-100 border-2 border-amber-300 rounded-lg">
+                  <div className="flex items-center px-3 md:px-4 py-2 md:py-3 bg-amber-100 border-2 border-amber-300 rounded-lg flex-1">
                     <span className="text-amber-800 font-bold text-xs">⚠️ Já registrado</span>
                   </div>
                 )}
@@ -868,19 +892,19 @@ export default function HoursPercentageCalculator() {
             </div>
 
             {/* Employees Section */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4" style={{ color: "#003a75" }}>
+            <div className="mb-6 md:mb-8">
+              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: "#003a75" }}>
                 Funcionários
               </h2>
 
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {employees.map((employee, index) => {
                   const percentage = calculatePercentage(employee.hours, employee.dailyGoal)
 
                   return (
                     <div
                       key={employee.id}
-                      className="flex gap-4 items-stretch p-4 rounded-lg border-2 flex-col md:flex-row md:items-center"
+                      className="flex gap-2 md:gap-4 items-stretch p-3 md:p-4 rounded-lg border-2 flex-col md:flex-row md:items-center"
                       style={{ backgroundColor: "#f5f5f5", borderColor: "#e5e5e5" }}
                     >
                       <div className="flex-1 w-full">
@@ -889,7 +913,7 @@ export default function HoursPercentageCalculator() {
                           value={employee.name}
                           onChange={(e) => updateEmployee(employee.id, "name", e.target.value)}
                           placeholder={`Funcionário ${index + 1}`}
-                          className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none"
+                          className="w-full px-3 md:px-4 py-2 border-2 rounded-lg focus:outline-none text-sm"
                           style={{ borderColor: "#003a75" }}
                         />
                       </div>
@@ -897,7 +921,7 @@ export default function HoursPercentageCalculator() {
                       <div className="w-full md:w-24">
                         <label className="text-xs text-gray-500 block mb-1 font-semibold">Meta</label>
                         <div
-                          className="w-full px-3 py-2 border-2 rounded-lg text-center bg-gray-200 font-semibold text-sm"
+                          className="w-full px-3 py-2 border-2 rounded-lg text-center bg-gray-200 font-semibold text-xs md:text-sm"
                           style={{ color: "#003a75", borderColor: "#e5e5e5" }}
                         >
                           {employee.dailyGoal}
@@ -914,13 +938,13 @@ export default function HoursPercentageCalculator() {
                           onKeyDown={(e) => handleKeyDown(e, index)}
                           placeholder="00:00"
                           maxLength={5}
-                          className="w-full px-3 py-2 border-2 rounded-lg text-center focus:outline-none font-mono"
+                          className="w-full px-3 py-2 border-2 rounded-lg text-center focus:outline-none font-mono text-sm"
                           style={{ borderColor: "#003a75" }}
                         />
                       </div>
 
                       <div
-                        className="w-full md:w-24 flex items-center justify-center rounded-lg py-2 px-4 font-bold text-white"
+                        className="w-full md:w-24 flex items-center justify-center rounded-lg py-2 px-3 md:px-4 font-bold text-white text-sm"
                         style={{ backgroundColor: "#e8d7d0" }}
                       >
                         <span style={{ color: "#ff8738" }}>{employee.hours ? percentage : "0,0"}%</span>
@@ -928,7 +952,7 @@ export default function HoursPercentageCalculator() {
 
                       <button
                         onClick={() => removeEmployee(employee.id)}
-                        className="px-2 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-sm"
+                        className="px-2 md:px-3 py-2 text-white rounded-lg hover:opacity-80 transition-colors font-semibold text-xs md:text-sm"
                         style={{ backgroundColor: "#fee2e2" }}
                       >
                         <span style={{ color: "#ef4444" }}>✕</span>
@@ -940,7 +964,7 @@ export default function HoursPercentageCalculator() {
 
               <button
                 onClick={addEmployee}
-                className="w-full mt-4 py-2 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm"
+                className="w-full mt-3 md:mt-4 py-2 md:py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm md:text-base"
                 style={{ backgroundColor: "#003a75" }}
               >
                 + Adicionar Funcionário
@@ -950,48 +974,48 @@ export default function HoursPercentageCalculator() {
             {/* Save Button */}
             <button
               onClick={saveToHistory}
-              className="w-full py-4 text-white rounded-lg font-bold text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2 mb-8"
+              className="w-full py-3 md:py-4 text-white rounded-lg font-bold text-base md:text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2 mb-6 md:mb-8"
               style={{ backgroundColor: "#ff8738" }}
             >
-              <Save className="w-5 h-5" />
+              <Save className="w-4 md:w-5 h-4 md:h-5" />
               Salvar Dia {formatDate(currentDate)}
             </button>
 
             {/* Charts Section */}
             {getChartData().length > 0 && (
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                   <div
-                    className="p-6 rounded-lg border-2"
+                    className="p-4 md:p-6 rounded-lg border-2"
                     style={{ backgroundColor: "#ffffff", borderColor: "#ff8738" }}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-5 h-5" style={{ color: "#ff8738" }} />
-                      <h3 className="font-semibold text-gray-700">Tempo Médio</h3>
+                      <Clock className="w-4 md:w-5 h-4 md:h-5" style={{ color: "#ff8738" }} />
+                      <h3 className="font-semibold text-sm md:text-base text-gray-700">Tempo Médio</h3>
                     </div>
-                    <p className="text-4xl font-bold" style={{ color: "#ff8738" }}>
+                    <p className="text-3xl md:text-4xl font-bold" style={{ color: "#ff8738" }}>
                       {calculateAverageTime()}
                     </p>
                   </div>
 
                   <div
-                    className="p-6 rounded-lg border-2"
+                    className="p-4 md:p-6 rounded-lg border-2"
                     style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-5 h-5" style={{ color: "#003a75" }} />
-                      <h3 className="font-semibold text-gray-700">Média da Equipe</h3>
+                      <Users className="w-4 md:w-5 h-4 md:h-5" style={{ color: "#003a75" }} />
+                      <h3 className="font-semibold text-sm md:text-base text-gray-700">Média da Equipe</h3>
                     </div>
-                    <p className="text-4xl font-bold" style={{ color: "#003a75" }}>
+                    <p className="text-3xl md:text-4xl font-bold" style={{ color: "#003a75" }}>
                       {calculateAveragePercentage()}%
                     </p>
                     {Number.parseFloat(calculateAveragePercentage().replace(",", ".")) >= 90 ? (
-                      <p className="text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
+                      <p className="text-xs md:text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
                         ✓ Meta atingida!
                       </p>
                     ) : (
-                      <p className="text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
+                      <p className="text-xs md:text-sm mt-2 font-semibold" style={{ color: "#ff8738" }}>
                         Faltam{" "}
                         {(90 - Number.parseFloat(calculateAveragePercentage().replace(",", ".")))
                           .toFixed(1)
@@ -1003,32 +1027,35 @@ export default function HoursPercentageCalculator() {
                 </div>
 
                 {/* Chart */}
-                <div className="p-6 rounded-lg border-2" style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}>
-                  <div className="flex items-center gap-2 mb-6">
-                    <BarChart3 className="w-6 h-6" style={{ color: "#003a75" }} />
-                    <h3 className="text-xl font-bold" style={{ color: "#003a75" }}>
-                      Porcentagem Trabalhada por Funcionário
+                <div
+                  className="p-4 md:p-6 rounded-lg border-2"
+                  style={{ backgroundColor: "#ffffff", borderColor: "#003a75" }}
+                >
+                  <div className="flex items-center gap-2 mb-4 md:mb-6">
+                    <BarChart3 className="w-5 md:w-6 h-5 md:h-6" style={{ color: "#003a75" }} />
+                    <h3 className="text-lg md:text-xl font-bold" style={{ color: "#003a75" }}>
+                      Porcentagem Trabalhada
                     </h3>
                   </div>
 
-                  <ResponsiveContainer width="100%" height={350}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={getChartData()} margin={{ top: 100, right: 20, left: 0, bottom: 80 }}>
                       <CartesianGrid stroke="#e5e7eb" vertical={true} horizontal={true} />
                       <XAxis
                         dataKey="name"
-                        tick={{ fill: "#4b5563", fontSize: 12 }}
+                        tick={{ fill: "#4b5563", fontSize: 11 }}
                         angle={-45}
                         textAnchor="end"
                         height={100}
                       />
-                      <YAxis tick={{ fill: "#4b5563", fontSize: 12 }} domain={[0, 120]} width={50} />
+                      <YAxis tick={{ fill: "#4b5563", fontSize: 11 }} domain={[0, 120]} width={50} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="percentage" shape={<CustomBar />}>
                         <LabelList
                           dataKey="hoursWorked"
                           position="top"
                           fill="#000000"
-                          fontSize={12}
+                          fontSize={11}
                           fontWeight="bold"
                           offset={45}
                         />
@@ -1036,7 +1063,7 @@ export default function HoursPercentageCalculator() {
                           dataKey="displayPercentage"
                           position="top"
                           fill="#00bcd4"
-                          fontSize={13}
+                          fontSize={12}
                           fontWeight="bold"
                           offset={25}
                           formatter={(value) => `${value}%`}
@@ -1045,21 +1072,21 @@ export default function HoursPercentageCalculator() {
                     </BarChart>
                   </ResponsiveContainer>
 
-                  <div className="flex gap-6 justify-center mt-6 text-sm flex-wrap">
+                  <div className="flex gap-3 md:gap-6 justify-center mt-4 md:mt-6 text-xs md:text-sm flex-wrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#22c55e" }}></div>
+                      <div className="w-3 md:w-4 h-3 md:h-4 rounded" style={{ backgroundColor: "#22c55e" }}></div>
                       <span className="text-gray-600 font-semibold">≥90%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ff8738" }}></div>
+                      <div className="w-3 md:w-4 h-3 md:h-4 rounded" style={{ backgroundColor: "#ff8738" }}></div>
                       <span className="text-gray-600 font-semibold">70-89%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#003a75" }}></div>
+                      <div className="w-3 md:w-4 h-3 md:h-4 rounded" style={{ backgroundColor: "#003a75" }}></div>
                       <span className="text-gray-600 font-semibold">50-69%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ef4444" }}></div>
+                      <div className="w-3 md:w-4 h-3 md:h-4 rounded" style={{ backgroundColor: "#ef4444" }}></div>
                       <span className="text-gray-600 font-semibold">&lt;50%</span>
                     </div>
                   </div>
