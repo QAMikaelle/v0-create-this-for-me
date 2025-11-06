@@ -462,8 +462,14 @@ export default function HoursPercentageCalculator() {
   }
 
   const CustomBar = (props: any) => {
-    const { fill, x, y, width, height, payload } = props
-    const barColor = getBarColor(payload.percentage)
+    const { x, y, width, height, index } = props
+    const dataPoint = getChartData()[index]
+
+    if (!dataPoint) {
+      return <rect x={x} y={y} width={width} height={height} fill="#d1d5db" radius={[8, 8, 0, 0]} />
+    }
+
+    const barColor = getBarColor(dataPoint.percentage)
     return <rect x={x} y={y} width={width} height={height} fill={barColor} radius={[8, 8, 0, 0]} />
   }
 
@@ -502,7 +508,7 @@ export default function HoursPercentageCalculator() {
           </div>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-sm md:text-base`}
+            className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 text-sm md:text-base`}
             style={{
               backgroundColor: showHistory ? "#ff8738" : "#003a75",
               color: "#ffffff",
@@ -875,7 +881,7 @@ export default function HoursPercentageCalculator() {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3 md:flex-1">
                 <button
                   onClick={clearCurrentDay}
                   className="px-3 md:px-4 py-2 md:py-3 rounded-lg font-semibold border-2 transition-colors text-xs md:text-sm flex-1"
@@ -884,8 +890,8 @@ export default function HoursPercentageCalculator() {
                   🆕 Novo Dia
                 </button>
                 {history.find((h) => h.date === currentDate) && (
-                  <div className="flex items-center px-3 md:px-4 py-2 md:py-3 bg-amber-100 border-2 border-amber-300 rounded-lg flex-1">
-                    <span className="text-amber-800 font-bold text-xs">⚠️ Já registrado</span>
+                  <div className="flex items-center px-3 md:px-4 py-2 md:py-3 bg-amber-100 border-2 border-amber-300 rounded-lg flex-1 text-xs md:text-sm">
+                    <span className="text-amber-800 font-bold">⚠️ Já registrado</span>
                   </div>
                 )}
               </div>
@@ -1038,7 +1044,7 @@ export default function HoursPercentageCalculator() {
                     </h3>
                   </div>
 
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={getChartData()} margin={{ top: 100, right: 20, left: 0, bottom: 80 }}>
                       <CartesianGrid stroke="#e5e7eb" vertical={true} horizontal={true} />
                       <XAxis
@@ -1050,22 +1056,22 @@ export default function HoursPercentageCalculator() {
                       />
                       <YAxis tick={{ fill: "#4b5563", fontSize: 11 }} domain={[0, 120]} width={50} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="percentage" shape={<CustomBar />}>
+                      <Bar dataKey="percentage" shape={<CustomBar />} isAnimationActive={false}>
                         <LabelList
                           dataKey="hoursWorked"
                           position="top"
                           fill="#000000"
-                          fontSize={11}
+                          fontSize={12}
                           fontWeight="bold"
-                          offset={45}
+                          offset={55}
                         />
                         <LabelList
                           dataKey="displayPercentage"
                           position="top"
                           fill="#00bcd4"
-                          fontSize={12}
+                          fontSize={13}
                           fontWeight="bold"
-                          offset={25}
+                          offset={35}
                           formatter={(value) => `${value}%`}
                         />
                       </Bar>
@@ -1092,6 +1098,17 @@ export default function HoursPercentageCalculator() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Import and Export Section with Enhanced Colors */}
+            {!getChartData().length && (
+              <button
+                onClick={addEmployee}
+                className="w-full mt-3 md:mt-4 py-2 md:py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm md:text-base"
+                style={{ backgroundColor: "#003a75" }}
+              >
+                + Adicionar Funcionário
+              </button>
             )}
           </div>
         )}
