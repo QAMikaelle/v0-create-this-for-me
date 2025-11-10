@@ -50,6 +50,8 @@ export default function HoursPercentageCalculator() {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split("T")[0])
   const [showImportModal, setShowImportModal] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [dateToDelete, setDateToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     loadHistory()
@@ -94,11 +96,18 @@ export default function HoursPercentageCalculator() {
   }
 
   const deleteDay = (date: string) => {
-    if (window.confirm(`Tem certeza que deseja deletar o dia ${formatDate(date)}?`)) {
-      const newHistory = history.filter((h) => h.date !== date)
+    setDateToDelete(date)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    if (dateToDelete) {
+      const newHistory = history.filter((h) => h.date !== dateToDelete)
       setHistory(newHistory)
       localStorage.setItem("work-hours-history", JSON.stringify(newHistory))
       alert("Dia deletado com sucesso!")
+      setShowDeleteConfirm(false)
+      setDateToDelete(null)
     }
   }
 
@@ -462,14 +471,8 @@ export default function HoursPercentageCalculator() {
   }
 
   const CustomBar = (props: any) => {
-    const { x, y, width, height, index } = props
-    const dataPoint = getChartData()[index]
-
-    if (!dataPoint) {
-      return <rect x={x} y={y} width={width} height={height} fill="#d1d5db" radius={[8, 8, 0, 0]} />
-    }
-
-    const barColor = getBarColor(dataPoint.percentage)
+    const { fill, x, y, width, height, payload } = props
+    const barColor = getBarColor(payload.percentage)
     return <rect x={x} y={y} width={width} height={height} fill={barColor} radius={[8, 8, 0, 0]} />
   }
 
@@ -881,14 +884,7 @@ export default function HoursPercentageCalculator() {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 md:gap-3 md:flex-1">
-                <button
-                  onClick={clearCurrentDay}
-                  className="px-3 md:px-4 py-2 md:py-3 rounded-lg font-semibold border-2 transition-colors text-xs md:text-sm flex-1"
-                  style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#d1d5db" }}
-                >
-                  🆕 Novo Dia
-                </button>
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 {history.find((h) => h.date === currentDate) && (
                   <div className="flex items-center px-3 md:px-4 py-2 md:py-3 bg-amber-100 border-2 border-amber-300 rounded-lg flex-1 text-xs md:text-sm">
                     <span className="text-amber-800 font-bold">⚠️ Já registrado</span>
@@ -944,7 +940,7 @@ export default function HoursPercentageCalculator() {
                           onKeyDown={(e) => handleKeyDown(e, index)}
                           placeholder="00:00"
                           maxLength={5}
-                          className="w-full px-3 py-2 border-2 rounded-lg text-center focus:outline-none font-mono text-sm"
+                          className="w-full px-3 py-2 border-2 rounded-lg text-center font-mono text-sm"
                           style={{ borderColor: "#003a75" }}
                         />
                       </div>
@@ -1044,41 +1040,41 @@ export default function HoursPercentageCalculator() {
                     </h3>
                   </div>
 
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={getChartData()} margin={{ top: 100, right: 20, left: 0, bottom: 80 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={getChartData()} margin={{ top: 80, right: 20, left: 0, bottom: 60 }}>
                       <CartesianGrid stroke="#e5e7eb" vertical={true} horizontal={true} />
                       <XAxis
                         dataKey="name"
                         tick={{ fill: "#4b5563", fontSize: 11 }}
                         angle={-45}
                         textAnchor="end"
-                        height={100}
+                        height={80}
                       />
                       <YAxis tick={{ fill: "#4b5563", fontSize: 11 }} domain={[0, 120]} width={50} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="percentage" shape={<CustomBar />} isAnimationActive={false}>
+                      <Bar dataKey="percentage" shape={<CustomBar />} maxBarSize={50}>
                         <LabelList
                           dataKey="hoursWorked"
                           position="top"
                           fill="#000000"
-                          fontSize={12}
+                          fontSize={11}
                           fontWeight="bold"
-                          offset={55}
+                          offset={30}
                         />
                         <LabelList
                           dataKey="displayPercentage"
                           position="top"
                           fill="#00bcd4"
-                          fontSize={13}
+                          fontSize={12}
                           fontWeight="bold"
-                          offset={35}
+                          offset={12}
                           formatter={(value) => `${value}%`}
                         />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
 
-                  <div className="flex gap-3 md:gap-6 justify-center mt-4 md:mt-6 text-xs md:text-sm flex-wrap">
+                  <div className="flex gap-3 md:gap-6 justify-center mt-2 md:mt-3 text-xs md:text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <div className="w-3 md:w-4 h-3 md:h-4 rounded" style={{ backgroundColor: "#22c55e" }}></div>
                       <span className="text-gray-600 font-semibold">≥90%</span>
@@ -1099,17 +1095,42 @@ export default function HoursPercentageCalculator() {
                 </div>
               </div>
             )}
+          </div>
+        )}
 
-            {/* Import and Export Section with Enhanced Colors */}
-            {!getChartData().length && (
-              <button
-                onClick={addEmployee}
-                className="w-full mt-3 md:mt-4 py-2 md:py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm md:text-base"
-                style={{ backgroundColor: "#003a75" }}
-              >
-                + Adicionar Funcionário
-              </button>
-            )}
+        {showDeleteConfirm && dateToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div
+              className="bg-white rounded-lg shadow-2xl p-6 md:p-8 max-w-sm w-full border-2"
+              style={{ borderColor: "#003a75" }}
+            >
+              <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: "#003a75" }}>
+                Confirmar Exclusão
+              </h2>
+              <p className="text-gray-700 mb-6 text-sm md:text-base">
+                Tem certeza que deseja deletar o dia <strong>{formatDate(dateToDelete)}</strong>? Esta ação não pode ser
+                desfeita.
+              </p>
+              <div className="flex gap-3 md:gap-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    setDateToDelete(null)
+                  }}
+                  className="flex-1 py-2 md:py-3 rounded-lg font-semibold border-2 transition-colors text-sm md:text-base"
+                  style={{ backgroundColor: "#ffffff", color: "#003a75", borderColor: "#003a75" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-2 md:py-3 text-white rounded-lg font-semibold hover:opacity-90 transition-colors text-sm md:text-base"
+                  style={{ backgroundColor: "#ef4444" }}
+                >
+                  Deletar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
